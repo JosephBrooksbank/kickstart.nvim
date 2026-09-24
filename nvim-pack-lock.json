@@ -1,0 +1,26 @@
+{
+  "plugins": {
+    "coq.artifacts": {
+      "rev": "d545035d06408f2d68cd03bc401425e42c298fc4",
+      "src": "https://github.com/ms-jpq/coq.artifacts",
+      "version": "'artifacts'"
+    },
+    "coq_nvim": {
+      "rev": "0cdbf99893729c5ffa74064382efc53364d7045d",
+      "src": "https://github.com/ms-jpq/coq_nvim",
+      "version": "'coq'"
+    },
+    "gitsigns.nvim": {
+      "rev": "070a5d7b985546cc57e1fc61e5bc507fecac6045",
+      "src": "https://github.com/lewis6991/gitsigns.nvim"
+    },
+    "guess-indent.nvim": {
+      "rev": "84a4987ff36798c2fc1169cbaff67960aed9776f",
+      "src": "https://github.com/NMAC427/guess-indent.nvim"
+    },
+    "nvim-lspconfig": {
+      "rev": "046b1a797af1effe8e0474b9af9657a3761ec58a",
+      "src": "https://github.com/neovim/nvim-lspconfig"
+    }
+  }
+}
