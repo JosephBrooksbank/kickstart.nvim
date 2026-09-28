@@ -22,7 +22,6 @@ do
     -- formatting
     vim.o.number = true
     vim.o.mouse = 'a'
-    
 
     -- clipboard
     -- can increase startuptime, so setting it after UI
@@ -56,6 +55,14 @@ do
     vim.o.scrolloff = 10
 
     vim.o.confirm = true
+
+    -- allow folds based on lsp
+    vim.opt.foldmethod = "expr"
+    vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+    vim.opt.foldlevel = 99
+    vim.opt.foldlevelstart = 99
+    vim.opt.foldenable = true
+
 end
 
 -- ==================================================================================================== 
@@ -158,9 +165,14 @@ local function gh(repo) return 'https://github.com/' .. repo end
 -- SECTION 4: UI / UX Plugins
 -- ==================================================================================================== 
 do
+
+    -- colorscheme
+    vim.pack.add { { src = gh 'catppuccin/nvim', name = 'catppuccin' } }
+    vim.cmd.colorscheme 'catppuccin-macchiato'
+
+
     -- most plugins need to call .setup(), simply installing them is not enough
     -- example: `guess-indent.nvim` is used to detect indentation from files
-
     -- first we install:
     vim.pack.add { gh 'NMAC427/guess-indent.nvim' }
     -- then we call setup:
@@ -171,6 +183,7 @@ do
     vim.pack.add { gh 'lewis6991/gitsigns.nvim' }
     local gitsigns = require 'gitsigns'
     gitsigns.setup {
+        current_line_blame = true,
         signs = {
             add = { text = '+' }, ---@diagnostic disable-line: missing-fields
             change = { text = '~' }, ---@diagnostic disable-line: missing-fields
@@ -197,8 +210,21 @@ do
                     gitsigns.nav_hunk 'prev'
                 end
             end, { desc = 'Jump to previous git [c]hange', buf = bufnr })
+
+            -- TODO add more git keymaps as required, this is all I use currently
+            vim.keymap.set('n', '<leader>hd', gitsigns.diffthis, { desc = 'git [d]iff against last commit', buf = bufnr })
+            vim.keymap.set('n', '<leader>hb', function() gitsigns.blame_line { full = true } end, { desc = 'git [b]lame line', buf = bufnr })
+            vim.keymap.set('n', '<leader>tb', gitsigns.toggle_current_line_blame, { desc = '[T]oggle git show [b]lame line', buf = bufnr })
+
         end,
     }
+
+    -- helpful for remembering keybinds
+    vim.pack.add { gh 'folke/which-key.nvim' }
+    require('which-key').setup {
+        delay = 150,
+        icons = { mappings = vim.g.have_nerd_font },
+   }
 
 
 end
