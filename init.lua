@@ -166,18 +166,40 @@ do
     -- then we call setup:
     require('guess-indent').setup {}
 
-
-    -- autocomplete
-    vim.pack.add {
-        { src = gh 'ms-jpq/coq_nvim', version = 'coq' },
-        { src = gh 'ms-jpq/coq.artifacts', version = 'artifacts' },
-    }
-
-
     -- many plugins require more advanced config
     -- example: `gitsigns.nvim` to show pending git changes in buffers
     vim.pack.add { gh 'lewis6991/gitsigns.nvim' }
     local gitsigns = require 'gitsigns'
+    gitsigns.setup {
+        signs = {
+            add = { text = '+' }, ---@diagnostic disable-line: missing-fields
+            change = { text = '~' }, ---@diagnostic disable-line: missing-fields
+            delete = { text = '_' }, ---@diagnostic disable-line: missing-fields
+            topdelete = { text = '‾' }, ---@diagnostic disable-line: missing-fields
+            changedelete = { text = '~' }, ---@diagnostic disable-line: missing-fields 
+        },
+        -- keymaps 
+        on_attach = function(bufnr)
+            -- Navigation
+            -- neovim has a 'diff' mode natively, maintain those keybinds
+            vim.keymap.set('n', ']c', function()
+                if vim.wo.diff then
+                    vim.cmd.normal { ']c', bang = true }
+                else
+                    gitsigns.nav_hunk 'next'
+                end
+            end, { desc = 'Jump to next git [c]hange', buf = bufnr })
+
+            vim.keymap.set('n', '[c', function()
+                if vim.wo.diff then
+                    vim.cmd.normal { '[c', bang = true }
+                else
+                    gitsigns.nav_hunk 'prev'
+                end
+            end, { desc = 'Jump to previous git [c]hange', buf = bufnr })
+        end,
+    }
+
 
 end
 
@@ -215,3 +237,5 @@ do
     }
     vim.lsp.enable('lua_ls')
 end
+
+
