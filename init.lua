@@ -307,7 +307,6 @@ do
     pcall(require('telescope').load_extension, 'fzf')
     pcall(require('telescope').load_extension, 'ui-select')
 
-    
     -- See `:help telescope.builtin`
     -- "Builtins is a collection of community maintained pickers"
     -- "picker": the UI/main function that actually determines what you're searching: listing files, or git changed files, or text within files, etc.
@@ -317,8 +316,27 @@ do
     vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
     -- select picker
     vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
+    vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
+    vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
+    vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
+    vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
+    vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
+    vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
+    vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc ='[ ] Find existing buffers' })
 
-    -- TODO: Add more telescope searches
+    -- telescope and LSP combination config, pickers for LSP actions
+    vim.api.nvim_create_autocmd('LspAttach', {
+        group = vim.api.nvim_create_augroup('telescope-lsp-attach', {clear = true }),
+        callback = function(event)
+            local buf = event.buf
+
+            vim.keymap.set('n', 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
+
+            vim.keymap.set('n', 'gri', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementations' })
+
+            vim.keymap.set('n', 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
+        end,
+    })
 
     vim.keymap.set('n', '<leader>/', function()
         -- pass in additional config to change theme, layout, etc
@@ -366,6 +384,14 @@ do
             map( 'grn', vim.lsp.buf.rename, '[R]e[n]ame')
             -- TODO: add more LSP keybinds
             
+
+            map('gra', vim.lsp.buf.code_action, '[G]oto Code [Action]', {'n', 'x'})
+
+
+            -- note this is goto Declaration, for ex. the header
+            -- less useful than definition, so it uses uppercase D
+            map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+
 
             -- highlight references under cursor when the cursor sits for a bit
             -- See `:help CursorHold`
