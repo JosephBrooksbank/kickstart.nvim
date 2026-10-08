@@ -71,11 +71,22 @@ end
 -- SECTION 2: keymaps and autocmds
 -- ==================================================================================================== 
 
-do 
+do
     vim.keymap.set('n', '<ESC>', '<cmd>nohlsearch<CR>')
     vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
     -- alt keymap for visual block when ctrl v is stolen
     vim.keymap.set('n', '<leader>v', '<C-v>')
+
+    -- Toggling comments with ctrl / (like Jetbrains)
+    vim.keymap.set('n', '<C-_>', 'gccj', { remap = true, desc = 'Toggle comment'})
+    vim.keymap.set('x', '<C-_>', 'gc', { remap = true, desc = 'Toggle comment' })
+    vim.keymap.set('i', '<C-_>', '<Esc>gccja', { remap = true, desc = 'Toggle comment' })
+
+    -- most terminals send ctrl+/ as ctrl+_. If one ever fails, add these
+    -- vim.keymap.set('n', '<C-/>', 'gccj', { remap = true, desc = 'Toggle comment' })
+    -- vim.keymap.set('x', '<C-/>', 'gc', { remap = true, desc = 'Toggle comment' })
+    -- vim.keymap.set('i', '<C-/>', '<Esc>gcca', { remap = true, desc = 'Toggle comment' })  
+
 
     -- default terminal exit is ctrl + \, ctrl + n which is hard to remember
     vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
@@ -163,6 +174,13 @@ end
 ---@return string
 local function gh(repo) return 'https://github.com/' .. repo end
 
+local function map_factory(desc_prefix, buffer)
+    return function (keys, func, desc, mode)
+        mode = mode or 'n'
+        vim.keymap.set(mode, keys, func, { buffer = buffer, desc = desc_prefix .. desc })
+    end
+end
+
 -- ==================================================================================================== 
 -- SECTION 4: UI / UX Plugins
 -- ==================================================================================================== 
@@ -195,15 +213,18 @@ do
         },
         -- keymaps 
         on_attach = function(bufnr)
+            -- create local function for maps
+            local map = map_factory('Git: ', bufnr)
+
             -- Navigation
             -- neovim has a 'diff' mode natively, maintain those keybinds
-            vim.keymap.set('n', ']c', function()
+            map(']c', function ()
                 if vim.wo.diff then
                     vim.cmd.normal { ']c', bang = true }
                 else
                     gitsigns.nav_hunk 'next'
                 end
-            end, { desc = 'Jump to next git [c]hange', buf = bufnr })
+            end, 'Jump to next git [c]hange')
 
             vim.keymap.set('n', '[c', function()
                 if vim.wo.diff then
@@ -213,6 +234,7 @@ do
                 end
             end, { desc = 'Jump to previous git [c]hange', buf = bufnr })
 
+            -- Visual Mode Actions
             -- TODO: add more git keymaps as required, this is all I use currently
             vim.keymap.set('n', '<leader>hd', gitsigns.diffthis, { desc = 'git [d]iff against last commit', buf = bufnr })
             vim.keymap.set('n', '<leader>hb', function() gitsigns.blame_line { full = true } end, { desc = 'git [b]lame line', buf = bufnr })
@@ -226,6 +248,12 @@ do
     require('which-key').setup {
         delay = 150,
         icons = { mappings = vim.g.have_nerd_font },
+        spec = {
+            { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
+            { '<leader>t', group = '[T]oggle', mode = { 'n', 'v' } },
+            { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+            { 'gr', group = 'LSP Actions', mode = { 'n' } },
+        }
    }
 
    -- Highlight todo, notes, etc
@@ -234,7 +262,6 @@ do
 
    -- [[ mini.nvim ]]
    -- various independent plugins
-   
    vim.pack.add { gh 'nvim-mini/mini.nvim' }
 
    -- if a nerd font is available, load it for pretty icons
@@ -323,6 +350,7 @@ do
     vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
     vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
     vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc ='[ ] Find existing buffers' })
+    vim.keymap.set('n', '<leader>sb', builtin.current_buffer_fuzzy_find, { desc = '[S]earch current [B]uffer' })
 
     -- telescope and LSP combination config, pickers for LSP actions
     vim.api.nvim_create_autocmd('LspAttach', {
@@ -348,7 +376,6 @@ do
 
     -- search neovim config
     vim.keymap.set('n', '<leader>sn', function() builtin.find_files { cwd = vim.fn.stdpath 'config', follow = true } end, { desc = '[S]earch [N]eovim files' })
-    
 end
 
 -- ==================================================================================================== 
@@ -383,7 +410,6 @@ do
             -- Rename variable under cursor
             map( 'grn', vim.lsp.buf.rename, '[R]e[n]ame')
             -- TODO: add more LSP keybinds
-            
 
             map('gra', vim.lsp.buf.code_action, '[G]oto Code [Action]', {'n', 'x'})
 
@@ -435,6 +461,7 @@ do
     ---@type table<string, vim.lsp.Config>
     local servers = {
         clangd = {},
+        csharp_ls = {},
         tsc = {},
         rust_analyzer = {}, -- TODO: check out rustaceanvim for alternative full plugin
         stylua = {}, -- used to format lua code
@@ -449,6 +476,7 @@ do
             end
 
             local current_settings = client.config.settings --[[@as lspconfig.settings.lua_ls]]
+            ---@diagnostic disable-next-line: assign-type-mismatch
             client.config.settings.Lua = vim.tbl_deep_extend('force', current_settings.Lua, {
               runtime = {
                 version = 'LuaJIT',
@@ -508,8 +536,33 @@ end
 -- ==================================================================================================== 
 -- SECTION 7: FORMATTING
 -- ==================================================================================================== 
--- TODO: implement formatting section
+do
+    vim.pack.add { gh 'stevearc/conform.nvim' }
+    require('conform').setup {
+        notify_on_error = false,
+        format_on_ave = function(bufnr)
+            local enabled_filetypes = {
+                lua = true,
+            }
+            if enabled_filetypes[vim.bo[bufnr].filetype] then
+                return { timeout_ms = 500 }
+            else
+                return nil
+            end
+        end,
+        default_format_opts = {
+            lsp_format = 'fallback', -- use external formatters if configured, otherwise lsp.
+        },
+        formatters_by_ft = {
+            rust = { 'rustfmt' }
+        },
+    }
 
+    vim.keymap.set({'n', 'v'}, '<leader>f', function()
+        require('conform').format { async = true }
+    end,
+    { desc = '[F]ormat buffer' })
+end
 
 
 -- ==================================================================================================== 
@@ -535,7 +588,7 @@ do
             -- <c-k>: Toggle signature help
             preset = 'default',
         },
-        
+
         appearance = {
             nerd_font_variant = 'mono',
         },
@@ -551,4 +604,67 @@ do
         fuzzy = { implementation = 'prefer_rust_with_warning' },
         signature = { enabled = true },
     }
+end
+
+
+-- ==================================================================================================== 
+-- SECTION 9: Tree
+-- ==================================================================================================== 
+
+do
+    vim.pack.add {
+        { src = gh 'nvim-neo-tree/neo-tree.nvim', version =vim.version.range '*' },
+        gh 'nvim-lua/plenary.nvim',
+        gh 'MunifTanjim/nui.nvim'
+    }
+
+    vim.keymap.set('n', '\\', '<Cmd>Neotree reveal<CR>', { desc = 'Neotree reveal', silent = true })
+
+    require ('neo-tree').setup {
+        filesystem = {
+            window = {
+                mappings = {
+                    ['\\'] = 'close_window'
+                },
+            },
+        },
+    }
+end
+
+
+-- ==================================================================================================== 
+-- SECTION 10: Additional Plugins
+-- ==================================================================================================== 
+do
+    -- my plugins, not part of the initial set provided by kickstart.
+    vim.pack.add {
+        gh 'm4xshen/hardtime.nvim'
+    }
+    require('hardtime').setup {
+        -- layered keyboard means arrow keys are where hjkl would be
+        disabled_keys = {
+            ['<Up>' ] = false,
+            ['<Down>'] = false,
+            ['<Left>'] = false,
+            ['<Right>'] = false,
+        },
+        restriction_mode = "block",
+    }
+
+    vim.pack.add {
+        gh 'folke/flash.nvim'
+    }
+    require('flash').setup {
+        modes = {
+            search = {
+                enabled = true
+            },
+        },
+    }
+
+    vim.keymap.set( { 'n', 'x', 'o'}, 's',function() require('flash').jump() end, {desc = 'Flash' })
+    -- unsure of what this is supposed to do
+    -- vim.keymap.set({'n', 'x', 'o'}, 'S', function() require('flash').treesitter() end, {desc = 'flash treesitter'})
+    vim.keymap.set( { 'o' }, 'r', function() require('flash').remote() end, { remap = true, desc = 'Remote Flash' })
+    vim.keymap.set('c', '<c-s>', function() require('flash').toggle() end, { desc = 'toggle flash search' })
 end
