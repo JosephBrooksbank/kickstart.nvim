@@ -461,7 +461,6 @@ do
     ---@type table<string, vim.lsp.Config>
     local servers = {
         clangd = {},
-        csharp_ls = {},
         tsc = {},
         rust_analyzer = {}, -- TODO: check out rustaceanvim for alternative full plugin
         stylua = {}, -- used to format lua code
@@ -498,6 +497,18 @@ do
           },
         },
       }
+
+      -- .net SDK is a requirement for csharp lsp
+      -- checks for an `sdk` folder next to the dotnet executable rather than running `dotnet --list-sdks`, to keep startup fast
+      local function has_dotnet_sdk()
+          local dotnet = vim.fn.exepath 'dotnet'
+          return dotnet ~= ''
+      end
+          -- if dotnet == '' then return false end
+          -- local sdk_dir = vim.fs.joinpath(vim.fs.dirname(vim.fn.resolve(dotnet)), 'sdk')
+          -- return vim.fn.glob(sdk_dir .. '/*') ~= ''
+      -- end
+      if has_dotnet_sdk() then servers.csharp_ls = {} end
 
       vim.pack.add {
           gh 'neovim/nvim-lspconfig',
